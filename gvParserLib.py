@@ -46,7 +46,7 @@ class Contact(object):
     def from_node(cls, node):
         ''' finds and returns the first contact found beneath the node in the tree'''
         #get the right node
-        contactnode = cls.get_node(node);
+        contactnode = cls.get_node(node)
         contact_obj = cls()
         #name
         contact_obj.name = contactnode.findtext(Parser.as_xhtml('./span[@class="fn"]'))
@@ -89,13 +89,13 @@ class GVoiceRecord(object):
 class TelephonyRecord(GVoiceRecord):
     __slots__ = ['duration']
     def __init__(self, contact = None, date = None, duration = None):
-        super(TelephonyRecord, self).__init__(contact, date);
+        super(TelephonyRecord, self).__init__(contact, date)
         self.duration = duration
     def __repr__(self):
         return "TelephonyRecord(%s, %s, %s)" % (repr(self.contact), repr(self.date), repr(self.duration))
     def dump(self):
         ''' Returns a string that encodes the information inside the object.'''
-        return_text = super(TelephonyRecord, self).dump();
+        return_text = super(TelephonyRecord, self).dump()
         if self.duration is not None:
             return_text += '(%s)' % self.duration
         return return_text
@@ -442,7 +442,7 @@ class Parser:
         '''*mynumbers* is a list of the phone numbers the account user uses'''
         #TEXTS
         #print filename
-        onewayname = tree.findtext(Parser.as_xhtml('.//title'));
+        onewayname = tree.findtext(Parser.as_xhtml('.//title'))
         onewayname = onewayname[6::] if onewayname.startswith("Me to") else None
         #process the text files
         obj = TextConversationList.from_node(tree, onewayname, filename, mynumbers)
