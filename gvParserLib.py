@@ -51,7 +51,9 @@ class Contact(object):
         #name
         contact_obj.name = contactnode.findtext(Parser.as_xhtml('./span[@class="fn"]'))
         if not contact_obj.name: #If a blank string or none.
-            contact_obj.name = None
+            contact_obj.name = contactnode.findtext(Parser.as_xhtml('./abbr[@class="fn"]'))
+            if not contact_obj.name:
+                contact_obj.name = None
         #phone number
         contactphonenumber = re.search('\d+', contactnode.attrib['href'])
         if contactphonenumber:
@@ -231,11 +233,15 @@ class AudioRecord(TelephonyRecord):
         return audio_obj
 
 class TextRecord(GVoiceRecord):
-    __slots__ = ['text','receiver']
-    def __init__(self, contact = None, date = None, text = None):
+    __slots__ = ['text','receiver','recipients']
+    def __init__(self, contact = None, date = None, text = None, recipients = None):
         super(TextRecord, self).__init__(contact, date)
         self.text     = text
         self.receiver = Contact()
+        if recipients is None:
+            self.recipients = []
+        else:
+            self.recipients = recipients
     def __repr__(self):
         return "TextRecord(%s, %s, %s)" % (self.contact, self.date, self.text)
     def dump(self):
@@ -316,19 +322,16 @@ class TextConversationList(list):
         #I received a text and did not reply
         if len(unique_contacts)==1:
             unique_contacts.append(Contact(name="###ME###",phonenumber=mynumbers[0]))
-        elif len(unique_contacts)>2:  #Multiway conversation
-            print("Multiway conversation detected!")
-            print(filename)
-            print(unique_contacts)
-            return txtConversation_obj
 
         #Note who I am conversing with. Clone by constructor
         txtConversation_obj.contact = Contact(name=conv_with.name,phonenumber=conv_with.phonenumber)
 
         #Set receivers for each text message in the conversation
         recipient = {unique_contacts[0]:unique_contacts[1], unique_contacts[1]:unique_contacts[0]}
+        empty_contact = Contact()
         for i in txtConversation_obj:
-            i.receiver = recipient[i.contact]
+            i.receiver = recipient.get(i.contact, empty_contact)
+            i.recipients = [c for c in unique_contacts if c != i.contact]
 
         return txtConversation_obj
 
