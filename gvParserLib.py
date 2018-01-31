@@ -11,6 +11,8 @@ from dateutil import tz
 import dateutil.parser
 import html5lib
 
+ME_NAME = "###ME###"
+
 #Contacts
 class Contact(object):
     __slots__ = ['name', 'phonenumber']
@@ -27,10 +29,10 @@ class Contact(object):
     def __nonzero__(self):
         ''' Returns whether or not the object has no effective information'''
         return bool(self.phonenumber) or bool(self.name)
-    def __eq__(self,other):
-        return self.phonenumber==other.phonenumber
+    def __eq__(self, other):
+        return self.phonenumber == other.phonenumber and self.name == other.name
     def __hash__(self):
-        return hash(self.phonenumber)
+        return hash((self.phonenumber, self.name))
 
     @staticmethod
     def get_node(node):
@@ -52,7 +54,9 @@ class Contact(object):
         contact_obj.name = contactnode.findtext(Parser.as_xhtml('./span[@class="fn"]'))
         if not contact_obj.name: #If a blank string or none.
             contact_obj.name = contactnode.findtext(Parser.as_xhtml('./abbr[@class="fn"]'))
-            if not contact_obj.name:
+            if contact_obj.name == "Me":
+                contact_obj.name = ME_NAME
+            elif not contact_obj.name:
                 contact_obj.name = None
         #phone number
         contactphonenumber = re.search('\d+', contactnode.attrib['href'])
@@ -306,7 +310,7 @@ class TextConversationList(list):
                 continue
 
             if txtmsg.contact.phonenumber in mynumbers:
-                txtmsg.contact = Contact(name="###ME###",phonenumber=mynumbers[0])
+                txtmsg.contact = Contact(name=ME_NAME,phonenumber=mynumbers[0])
             else:
                 conv_with = txtmsg.contact
             txtConversation_obj.append(txtmsg)
@@ -321,7 +325,7 @@ class TextConversationList(list):
 
         #I received a text and did not reply
         if len(unique_contacts)==1:
-            unique_contacts.append(Contact(name="###ME###",phonenumber=mynumbers[0]))
+            unique_contacts.append(Contact(name=ME_NAME,phonenumber=mynumbers[0]))
 
         #Note who I am conversing with. Clone by constructor
         txtConversation_obj.contact = Contact(name=conv_with.name,phonenumber=conv_with.phonenumber)
