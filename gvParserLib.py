@@ -11,14 +11,13 @@ from dateutil import tz
 import dateutil.parser
 import html5lib
 
-ME_NAME = "###ME###"
-
 #Contacts
 class Contact(object):
-    __slots__ = ['name', 'phonenumber']
-    def __init__(self, phonenumber = None, name = None):
+    __slots__ = ['name', 'phonenumber', 'is_me']
+    def __init__(self, phonenumber = None, name = None, is_me = None):
         self.phonenumber = phonenumber
         self.name = name
+        self.is_me = is_me
     def __repr__(self):
         return "Contact(%s, %s)" % (repr(self.name), repr(self.phonenumber))
     def dump(self):
@@ -30,9 +29,11 @@ class Contact(object):
         ''' Returns whether or not the object has no effective information'''
         return bool(self.phonenumber) or bool(self.name)
     def __eq__(self, other):
-        return self.phonenumber == other.phonenumber and self.name == other.name
+        return (self.phonenumber == other.phonenumber
+            and self.name == other.name
+            and self.is_me == other.is_me)
     def __hash__(self):
-        return hash((self.phonenumber, self.name))
+        return hash((self.phonenumber, self.name, self.is_me))
 
     @staticmethod
     def get_node(node):
@@ -55,7 +56,7 @@ class Contact(object):
         if not contact_obj.name: #If a blank string or none.
             contact_obj.name = contactnode.findtext(Parser.as_xhtml('./abbr[@class="fn"]'))
             if contact_obj.name == "Me":
-                contact_obj.name = ME_NAME
+                contact_obj.is_me = True
             elif not contact_obj.name:
                 contact_obj.name = None
         #phone number
@@ -298,6 +299,7 @@ class TextConversationList(list):
             return None
 
         #Read each text message, making a note of whether I sent it
+        me = Contact(phonenumber=mynumbers[0], is_me=True)
         txtConversation_obj = cls()
         conv_with           = None
         for txtNode in textnodes:
@@ -310,7 +312,7 @@ class TextConversationList(list):
                 continue
 
             if txtmsg.contact.phonenumber in mynumbers:
-                txtmsg.contact = Contact(name=ME_NAME,phonenumber=mynumbers[0])
+                txtmsg.contact.is_me = True
             else:
                 conv_with = txtmsg.contact
             txtConversation_obj.append(txtmsg)
@@ -318,14 +320,21 @@ class TextConversationList(list):
         #All contacts on conversation
         unique_contacts = list(set(txt.contact for txt in txtConversation_obj))
 
-        #I sent an unreplied out-going message
+        #I sent an unreplied out-going message?
         if not conv_with:
-            conv_with = Contact(None, onewayname)
-            unique_contacts.append(conv_with)
+            if onewayname:
+                conv_with = Contact(None, onewayname)
+                unique_contacts.append(conv_with)
+            else:
+                me_contacts = [c for c in unique_contacts if c.is_me]
+                if me_contacts:
+                    conv_with = me_contacts[0]
+                else:
+                    conv_with = Contact(None, None)
 
         #I received a text and did not reply
         if len(unique_contacts)==1:
-            unique_contacts.append(Contact(name=ME_NAME,phonenumber=mynumbers[0]))
+            unique_contacts.append(me)
 
         #Note who I am conversing with. Clone by constructor
         txtConversation_obj.contact = Contact(name=conv_with.name,phonenumber=conv_with.phonenumber)
@@ -336,6 +345,8 @@ class TextConversationList(list):
         for i in txtConversation_obj:
             i.receiver = recipient.get(i.contact, empty_contact)
             i.recipients = [c for c in unique_contacts if c != i.contact]
+            if not i.recipients:
+                i.recipients = [me]
 
         return txtConversation_obj
 
