@@ -336,8 +336,11 @@ class TextConversationList(list):
                     conv_with = Contact(None, None)
 
         #I received a text and did not reply
-        if len(unique_contacts)==1:
-            unique_contacts.append(me)
+        if len(unique_contacts) == 1:
+            if onewayname:
+                unique_contacts.append(Contact(None, onewayname))
+            else:
+                unique_contacts.append(me)
 
         #Note who I am conversing with. Clone by constructor
         txtConversation_obj.contact = Contact(name=conv_with.name,phonenumber=conv_with.phonenumber)
