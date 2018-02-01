@@ -299,7 +299,10 @@ class TextConversationList(list):
             return None
 
         #Read each text message, making a note of whether I sent it
-        me = Contact(phonenumber=mynumbers[0], is_me=True)
+        if mynumbers and mynumbers[0]:
+            me = Contact(phonenumber=mynumbers[0], is_me=True)
+        else:
+            me = Contact(name='Me', is_me=True)
         txtConversation_obj = cls()
         conv_with           = None
         for txtNode in textnodes:
